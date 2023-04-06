@@ -24,7 +24,6 @@ function verifySignature(req, res, next) {
     signature !== req.get("sign") ||
     signatureAge > SIGNATURE_VALIDITY_PERIOD
   ) {
-    console.log("Invalid signature");
     return res.status(400).json({
       success: false,
       returnCode: "9999",
@@ -36,8 +35,12 @@ function verifySignature(req, res, next) {
 }
 
 //this webhook to listen for Alchemy Pay notification that the user has paid and we need to transfer the tokens
-app.post("/webhook",verifySignature, (req, res) => {
+app.post("/webhook",verifySignature, async (req, res) => {
   // Verify the signature for authentication
+  let receivedUserPaidNotification = false
+  let tokensTransferred = false
+  let notificationTokenSent = false
+  let returnMsg = "failed"
     const {
       orderNo,
       crypto,
@@ -47,9 +50,14 @@ app.post("/webhook",verifySignature, (req, res) => {
       cryptoPrice,
       usdtAmount,
     } = req.body;
+    receivedUserPaidNotification = true
+    returnMsg = "user paid notification received"
     //transfer crypto to user address according to crypto amount
     //.....
     //notify alchemy pay that tokens are transferred
+    tokensTransferred = true
+    returnMsg += " ,tokens transferred"
+
     const transactionData = {
       orderNo: "12345",
       crypto: "BTC",
@@ -61,7 +69,7 @@ app.post("/webhook",verifySignature, (req, res) => {
     };
     try {
       const timestamp = Date.now();
-      axios
+      await axios
         .post("https://openapi-test.alchemypay.org", transactionData, {
           headers: {
             appId: APP_ID,
@@ -70,19 +78,24 @@ app.post("/webhook",verifySignature, (req, res) => {
           },
         })
         .then((response) => {
-          console.log(JSON.stringify(response.data));
+          console.log(response.data);
+          notificationTokenSent = response.data.success
+          returnMsg += notificationTokenSent ? " ,token transfer notification sent" : ""
         })
         .catch((error) => {
-          console.log("error");
+          console.log(error);
         });
     } catch (error) {
       console.log(error);
       res.status(400).json({ success: false, error });
     }
     res.status(200).json({
-      success: true,
+      success: receivedUserPaidNotification&tokensTransferred&notificationTokenSent,
       returnCode: "0000",
-      returnMsg: "Notification sent to alchemy pay",
+      receivedUserPaidNotification,
+      tokensTransferred,
+      notificationTokenSent,
+      returnMsg,
     });
   }
 );
@@ -134,14 +147,14 @@ app.post("/alchemyOnRamp/callback", (req, res) => {
       returnMsg: "Invalid signature",
     });
   }
-  console.log(transactionData)
-  //alchemyTransactions.createTransaction(transactionData);
+  //save to database;
+  res.status(200).json({success:true,message:'transaction data received'})
 });
 
 app.listen(5000, () => {
   console.log("Webhook listening on port 3000");
 });
 
-//testPrice()
+testPrice()
 testWebHook()
-//testCallback()
+testCallback()

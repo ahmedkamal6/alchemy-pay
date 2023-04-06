@@ -2,6 +2,7 @@ const APP_ID = "f83Is2y7L425rxl8";
 const APP_SECRET = "4Yn8RkxDXN71Q3p0";
 const sha1 = require("js-sha1");
 const axios = require("axios");
+const { response } = require("express");
 
 const testPrice = () => {
   let config = {
@@ -19,9 +20,11 @@ const testPrice = () => {
     .request(config)
     .then((response) => {
       console.log(JSON.stringify(response.data));
+      console.log(response.data);
+      
     })
     .catch((error) => {
-      console.log("error");
+      console.log(error.response.data);
     });
 };
 
@@ -50,7 +53,7 @@ const testWebHook = () => {
       console.log(response.data);
     })
     .catch((error) => {
-      console.log(error);
+      console.log(error.response.data);
     });
 };
 
@@ -87,7 +90,7 @@ const testCallback = () => {
         console.log(response.data);
       })
       .catch(function (error) {
-        console.log("error");
+        console.log(error.response.data);
       });
   };
 
